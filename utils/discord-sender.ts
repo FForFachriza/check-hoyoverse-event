@@ -1,10 +1,9 @@
 import { WebhookClient } from 'discord.js';
 import type { EventSummary } from '../types/types';
 
+let gameName:string
 
 export function discordSender(event:EventSummary, type: "gi"|"hsr"|"zzz") {
-
-    let gameName:string
 
   switch (type) {
         case "gi":
@@ -32,7 +31,7 @@ export function discordSender(event:EventSummary, type: "gi"|"hsr"|"zzz") {
       const formattedUpcomingEvents = event.upcoming_event.map(formatEvent).join('\n');
       
       const message = `
-      **Current Events:**\n\n${formattedCurrentEvents}\n**Upcoming Events:**\n\n${formattedUpcomingEvents}
+      **${gameName}**\n**Current Events:**\n\n${formattedCurrentEvents}\n**Upcoming Events:**\n\n${formattedUpcomingEvents}
       `;
       
       webhookClient.send({

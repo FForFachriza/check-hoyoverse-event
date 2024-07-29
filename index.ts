@@ -109,7 +109,7 @@ async function getGenshinEvent() {
 async function main() {
   const genshinText = await getGenshinEvent();
 
-  discordSender(genshinText!)
+  discordSender(genshinText!, "gi")
   
 }
 
