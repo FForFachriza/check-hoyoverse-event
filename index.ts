@@ -1,16 +1,6 @@
 import * as cheerio from "cheerio";
-
-interface IUrl {
-  url: string;
-  gameName: string;
-}
-
-interface ITemplateEvent {
-  eventName: string;
-  eventDate: string;
-  typeEvent: string;
-  eventLink: string;
-}
+import type { EventPacked, EventSummary, EventTypes, IUrl } from "./types/types";
+import { discordSender } from "./utils/discord-sender";
 
 const links: IUrl[] = [
   {
@@ -39,46 +29,88 @@ async function getGenshinEvent() {
     const html = await fetcher(links[0].url);
     const $ = cheerio.load(html);
     
-    const dates:string[] = []
-    const eventNames:string[] = []
-    const eventTypes:string[] = []
-    const eventLinks:string[] = []
+    const currentEvent: EventTypes = {
+      dates: [],
+      eventNames: [],
+      eventTypes: [],
+      eventLinks: []
+    };
 
+    const upcommingEvent: EventTypes = {
+      dates: [],
+      eventNames: [],
+      eventTypes: [],
+      eventLinks: []
+    }
+
+    // ============= CURRENT EVENT =============
     // Date
     $(".sortable:nth-child(12) td:nth-child(2)").each((i, el) => {
       const element = $(el).text();
-      dates.push(element) 
+      currentEvent["dates"].push(element) 
     });
     // Event Name
     $(".sortable:nth-child(12) br+ a").each((i, el) => {
       const element = $(el)
-      eventNames.push(element.text()) 
-      eventLinks.push(`https://genshin-impact.fandom.com${element.attr("href")!}`)
+      currentEvent["eventNames"].push(element.text()) 
+      currentEvent["eventLinks"].push(`https://genshin-impact.fandom.com${element.attr("href")!}`)
     });
     // Event Type
     $(".sortable:nth-child(12) td~ td+ td").each((i, el) => {
       const element = $(el).text();
-      eventTypes.push(element) 
+      currentEvent["eventTypes"].push(element) 
     });
 
 
+    // ============= UPCOMING EVENT =============
+    // Date
+    $(".sortable:nth-child(14) td:nth-child(2)").each((i, el) => {
+      const element = $(el).text();
+      upcommingEvent["dates"].push(element) 
+    });
+    // Event Name
+    $(".sortable~ .sortable br+ a").each((i, el) => {
+      const element = $(el)
+      upcommingEvent["eventNames"].push(element.text()) 
+      upcommingEvent["eventLinks"].push(`https://genshin-impact.fandom.com${element.attr("href")!}`)
+    });
+    // Event Type
+    $(".sortable:nth-child(14) td~ td+ td").each((i, el) => {
+      const element = $(el).text();
+      upcommingEvent["eventTypes"].push(element) 
+    });
 
-    const currentEvent: ITemplateEvent[] = dates.map((val, i) => ({
-      eventDate: val,
-      eventName: eventNames[i],
-      typeEvent: eventTypes[i],
-      eventLink: eventLinks[i]
-    }));
+    
+    const currentEventPacked:EventPacked[] = currentEvent["dates"].map((val,i)=>({
+      date: val,
+      event_name: currentEvent["eventNames"][i],
+      event_type: currentEvent["eventTypes"][i],
+      event_link: currentEvent["eventLinks"][i]
+    }))
+    const upcomingEventPacked:EventPacked[] = upcommingEvent["dates"].map((val,i)=>({
+      date: val,
+      event_name: upcommingEvent["eventNames"][i],
+      event_type: upcommingEvent["eventTypes"][i],
+      event_link: upcommingEvent["eventLinks"][i]
+    }))
 
-    console.log(currentEvent)
+    const genshinEventSummary:EventSummary = {
+      current_event: currentEventPacked,
+      upcoming_event: upcomingEventPacked
+    };
 
+    return genshinEventSummary;
+  
   } catch (error) {
     console.error('Error fetching Genshin event:', error);
   }
 }
 
 async function main() {
-  await getGenshinEvent();
+  const genshinText = await getGenshinEvent();
+
+  discordSender(genshinText!)
+  
 }
 
 main()
